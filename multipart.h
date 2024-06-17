@@ -13,8 +13,26 @@
 #define INITIAL_FILE_CAPACITY 2
 #endif
 
+// 10MB is the default maximum file size.
 #ifndef MAX_FILE_SIZE
-#define MAX_FILE_SIZE 10 * 1024 * 1024  // 10MB
+#define MAX_FILE_SIZE 10 * 1024 * 1024
+#endif
+
+// Define maximum values for field_name, filename and mimetype and value.
+#ifndef MAX_FIELD_NAME_SIZE
+#define MAX_FIELD_NAME_SIZE 64
+#endif
+
+#ifndef MAX_FILENAME_SIZE
+#define MAX_FILENAME_SIZE 128
+#endif
+
+#ifndef MAX_MIMETYPE_SIZE
+#define MAX_MIMETYPE_SIZE 128
+#endif
+
+#ifndef MAX_VALUE_SIZE
+#define MAX_VALUE_SIZE 2048
 #endif
 
 typedef enum {
@@ -35,20 +53,20 @@ typedef struct FileHeader {
     size_t offset;  // Offset from the body of request as passed to parse_multipart.
     size_t size;    // Computed file size.
 
-    char* filename;    // Value of filename in Content-Disposition
-    char* mimetype;    // Content-Type of the file.
-    char* field_name;  // Name of the field the file is associated with.
+    char filename[MAX_FILENAME_SIZE];      // Value of filename in Content-Disposition
+    char mimetype[MAX_MIMETYPE_SIZE];      // Content-Type of the file.
+    char field_name[MAX_FIELD_NAME_SIZE];  // Name of the field the file is associated with.
 } FileHeader;
 
 // Represents a field with its value in a form.
 typedef struct FormField {
-    char* name;   // Field name
-    char* value;  // Value associated with the field.
+    char name[MAX_FIELD_NAME_SIZE];  // Field name
+    char value[MAX_VALUE_SIZE];      // Value associated with the field.
 } FormField;
 
 typedef struct MultipartForm {
-    FileHeader* files;  // The array of file headers
-    size_t num_files;   // The number of files processed.
+    FileHeader** files;  // The array of file headers
+    size_t num_files;    // The number of files processed.
 
     FormField* fields;  // Array of form field structs.
     size_t num_fields;  // The number of fields.
@@ -59,10 +77,11 @@ typedef enum {
     MEMORY_ALLOC_ERROR,
     INVALID_FORM_BOUNDARY,
     MAX_FILE_SIZE_EXCEEDED,
-    NO_FILE_CONTENT_TYPE,
-    NO_FILE_CONTENT_DISPOSITION,
-    NO_FILE_NAME,
-    NO_FILE_DATA,
+    FIELD_NAME_TOO_LONG,
+    FILENAME_TOO_LONG,
+    MIMETYPE_TOO_LONG,
+    VALUE_TOO_LONG,
+    EMPTY_FILE_CONTENT,
 } MultipartCode;
 
 /**
@@ -107,10 +126,14 @@ const char* multipart_get_field_value(const MultipartForm* form, const char* nam
 // Get the first file matching the field name.
 FileHeader* multipart_get_file(const MultipartForm* form, const char* field_name);
 
-// Get all files matching the field name.
-// @params: count is the number of files found and will be updated.
-// Not that the array will be allocates and must be freed by the caller.
-FileHeader* multipart_get_files(const MultipartForm* form, const char* field_name, size_t* count);
+// Get all files indices matching the field name.
+// We return indices because we can have multiple files with the same field name but we
+// want to avoid double free and dangling pointers if we keep a reference to the files in another array.
+//
+// @param: form is the MultipartForm struct pointer.
+// @param: count is the number of files found and will be updated.
+// Not that the array will be allocated and must be freed by the caller with glibc's free.
+size_t* multipart_get_files(const MultipartForm* form, const char* field_name, size_t* count);
 
 // Save file writes the file to the file system.
 // @param: file is the FileHeader that has the correct offset and file size.

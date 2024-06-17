@@ -83,20 +83,20 @@ int main() {
     assert(file->offset > 0);
 
     // Getting multiple files
-    FileHeader* files;
     size_t num_files = 0;
-    files = multipart_get_files(&form, "file", &num_files);
-    assert(files);
-
-    // We must free the files array
-    free(files);
+    size_t* indices = multipart_get_files(&form, "file", &num_files);
+    assert(indices);
+    assert(num_files == 1);
+    assert(indices[0] == 0);
+    free(indices);
 
     // validate the count
     assert(num_files == 1);
 
     // Save the file
-    bool saved = multipart_save_file(&form.files[0], data, "form_upload_screenshot.png");
+    bool saved = multipart_save_file(form.files[0], data, "form_upload_screenshot.png");
     assert(saved);
+    printf("File saved\n");
 
     // Free the data
     free(data);
@@ -106,5 +106,6 @@ int main() {
 
     assert(form.fields == NULL);
     assert(form.files == NULL);
+    printf("All tests passed\n");
     return EXIT_SUCCESS;
 }
