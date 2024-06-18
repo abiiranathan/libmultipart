@@ -131,9 +131,9 @@ FileHeader* multipart_get_file(const MultipartForm* form, const char* field_name
 // want to avoid double free and dangling pointers if we keep a reference to the files in another array.
 //
 // @param: form is the MultipartForm struct pointer.
-// @param: count is the number of files found and will be updated.
+// @param: count is pointer the number of files found and will be updated.
 // Not that the array will be allocated and must be freed by the caller with glibc's free.
-size_t* multipart_get_files(const MultipartForm* form, const char* field_name, size_t* count);
+size_t* multipart_get_files(const MultipartForm* form, const char* field_name, size_t count[static 1]);
 
 // Save file writes the file to the file system.
 // @param: file is the FileHeader that has the correct offset and file size.

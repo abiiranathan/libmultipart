@@ -9,6 +9,7 @@
 // Author: Dr. Abiira Nathan                                                              #
 // Date: 17 June 2024                                                                     #
 //=========================================================================================
+#define _GNU_SOURCE  // for memmem
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -451,7 +452,7 @@ FileHeader* multipart_get_file(const MultipartForm* form, const char* field_name
     return NULL;
 }
 
-size_t* multipart_get_files(const MultipartForm* form, const char* field_name, size_t* count) {
+size_t* multipart_get_files(const MultipartForm* form, const char* field_name, size_t count[static 1]) {
     size_t num_files = 0;
     for (size_t i = 0; i < form->num_files; i++) {
         if (strcmp(form->files[i]->field_name, field_name) == 0) {
@@ -459,7 +460,7 @@ size_t* multipart_get_files(const MultipartForm* form, const char* field_name, s
         }
     }
 
-    if (num_files == 0 || count == NULL) {
+    if (num_files == 0) {
         *count = 0;
         return NULL;
     }
@@ -534,7 +535,6 @@ static FileHeader** realloc_files(MultipartForm* form) {
     FileHeader** new_files = (FileHeader**)realloc(form->files, new_capacity * sizeof(FileHeader*));
     if (!new_files) {
         perror("Failed to reallocate memory for files");
-        multipart_free_form(form);
         return NULL;
     }
     form->files = new_files;
@@ -546,11 +546,8 @@ static FormField* realloc_fields(MultipartForm* form) {
     FormField* new_fields = (FormField*)realloc(form->fields, new_capacity * sizeof(FormField));
     if (!new_fields) {
         perror("Failed to reallocate memory for fields");
-        multipart_free_form(form);
         return NULL;
     }
     form->fields = new_fields;
     return form->fields;
 }
-
-// Works but still has memory leaks and needs tidying.
