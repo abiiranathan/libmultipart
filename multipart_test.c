@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+static void test_unterminated_body();
+
 int main() {
     // Read in form text with a multipart/form with username,password and an image.
     FILE* f = fopen("form.bin", "rb");
@@ -106,6 +108,42 @@ int main() {
 
     assert(form.fields == NULL);
     assert(form.files == NULL);
+
+    test_unterminated_body();
     printf("All tests passed\n");
     return EXIT_SUCCESS;
+}
+
+// test should still pass even if the body is not null terminated
+void test_unterminated_body() {
+    char boundary[128] = {0};
+    const char body[] = {
+        '-', '-', 'W', 'e', 'b', 'K', 'i', 't', 'F', 'o', 'r', 'm', 'B', 'o', 'u', 'n', 'd', 'a', 'r', 'y', 'S', '3',
+        's', 'D', 'R', '2', 'a', 't', 'm', 'c', '8', 'K', 'J', 'S', '5', 'U', '\r', '\n', 'C', 'o', 'n', 't', 'e', 'n',
+        't', '-', 'D', 'i', 's', 'p', 'o', 's', 'i', 't', 'i', 'o', 'n', ':', ' ', 'f', 'o', 'r', 'm', '-', 'd', 'a',
+        't', 'a', ';', ' ', 'n', 'a', 'm', 'e', '=', '"', 'u', 's', 'e', 'r', 'n', 'a', 'm', 'e', '"', '\r', '\n', '\r',
+        '\n', 'n', 'a', 'b', 'i', 'i', 'z', 'y', '\r', '\n', '-', '-', 'W', 'e', 'b', 'K', 'i', 't', 'F', 'o', 'r', 'm',
+        'B', 'o', 'u', 'n', 'd', 'a', 'r', 'y', 'S', '3', 's', 'D', 'R', '2', 'a', 't', 'm', 'c', '8', 'K', 'J', 'S',
+        '5', 'U', '\r', '\n',
+        //  Add terminating boundary
+        '-', '-', 'W', 'e', 'b', 'K', 'i', 't', 'F', 'o', 'r', 'm', 'B', 'o', 'u', 'n', 'd', 'a', 'r', 'y', 'S', '3',
+        's', 'D', 'R', '2', 'a', 't', 'm', 'c', '8', 'K', 'J', 'S', '5', 'U', '-', '-', '\r', '\n'};
+
+    assert(multipart_parse_boundary(body, boundary, sizeof(boundary)));
+
+    assert(strncmp(boundary, "--WebKitFormBoundaryS3sDR2atmc8KJS5U", sizeof(boundary)) == 0);
+
+    MultipartForm form = {0};
+    MultipartCode code;
+    code = multipart_parse_form(body, sizeof(body) - 1, boundary, &form);
+    assert(code == MULTIPART_OK);
+
+    assert(form.num_fields == 1);
+    assert(form.num_files == 0);
+
+    const char* username = multipart_get_field_value(&form, "username");
+    assert(username);
+    assert(strcmp(username, "nabiizy") == 0);
+
+    printf("Test with non-null terminated body passed\n");
 }

@@ -143,4 +143,11 @@ size_t* multipart_get_files(const MultipartForm* form, const char* field_name, s
 // Returns: true on success, false on failure.
 bool multipart_save_file(const FileHeader* file, const char* body, const char* path);
 
+// A simple implementation of strstr that takes a length parameter.
+// and does not search beyond the length. This avoids dependence on
+// both the haystack and needle being null-terminated.
+// Shamelessly copied verbatim from:
+// https://stackoverflow.com/questions/8584644/strstr-for-a-string-that-is-not-null-terminated
+char* sstrstr(const char* haystack, const char* needle, size_t length);
+
 #endif  // __MULTIPART_H__
