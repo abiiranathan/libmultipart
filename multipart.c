@@ -293,6 +293,14 @@ MultipartCode multipart_parse_form(const char* data, size_t size, char* boundary
 
                 // No file content if the next line is a boundary
                 if (memcmp(ptr, boundary, boundary_length) == 0) {
+                    // If the file was never provided,the filename will be empty
+                    // That's not an error.
+                    if (strcmp(filename, "") == 0) {
+                        state = STATE_BOUNDARY;
+                        break;
+                    }
+
+                    // We have empty file body
                     code = EMPTY_FILE_CONTENT;
                     goto cleanup;
                 }
